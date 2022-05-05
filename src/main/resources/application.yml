@@ -36,9 +36,31 @@ spring:
   config:
     activate:
       on-profile: dev
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    initialize: false
+  jpa:
+    properties:
+      hibernate:
+        format_sql: true
+    hibernate:
+      ddl-auto: none
 
 ---
 spring:
   config:
     activate:
       on-profile: production
+
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://cotchan.net:3306/club_test?serverTimezone=Asia/Seoul&characterEncoding=UTF-8
+    username: clubuser
+    password: club
+    initialize: false
+  jpa:
+    properties:
+      hibernate:
+        format_sql: true
+    hibernate:
+      ddl-auto: none

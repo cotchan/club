@@ -2,7 +2,7 @@ FROM node:alpine as builder
 
 WORKDIR /app
 
-COPY ./package.json ./
+COPY ./ ./
 
 RUN apk add --no-cache --virtual .gyp \
         python3 \
@@ -10,8 +10,6 @@ RUN apk add --no-cache --virtual .gyp \
         g++ \
     && npm install \
     && apk del .gyp \
-
-COPY ./ ./
 
 RUN npm run build
 

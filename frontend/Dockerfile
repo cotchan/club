@@ -10,8 +10,7 @@ RUN apk add --no-cache --virtual .gyp \
         g++ \
     && npm install \
     && apk del .gyp \
-
-RUN npm run build
+    && npm run build
 
 FROM nginx
 EXPOSE 3000

@@ -1,18 +1,15 @@
 FROM node:alpine as builder
 
+WORKDIR /app
+
+COPY ./package.json ./
+
 RUN apk add --no-cache --virtual .gyp \
         python \
         make \
         g++ \
     && npm install \
-        [ your npm dependencies here ] \
     && apk del .gyp \
-
-WORKDIR /app
-
-COPY ./package.json ./
-
-RUN npm install
 
 COPY ./ ./
 

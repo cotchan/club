@@ -44,8 +44,8 @@
     </appender>
 
     <!-- root 레벨 설정 -->
-    <root level="file">
+    <root level="info">
         <!-- appender-ref로 "appender name" 지정 -->
-        <appender-ref ref="console"/>
+        <appender-ref ref="file"/>
     </root>
 </configuration>

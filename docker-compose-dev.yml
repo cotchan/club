@@ -11,15 +11,13 @@ services:
       - ./frontend:/app
     stdin_open: true
   nginx:
+    container_name: nginx-app
     restart: always
     build:
       context: ./nginx
       dockerfile: Dockerfile
-    depends_on:
-      - frontend
-      - backend
     ports:
-      - "3000:80"
+      - "80:80"
   backend:
     container_name: spring-app
     build:

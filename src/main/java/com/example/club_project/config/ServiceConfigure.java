@@ -23,6 +23,10 @@ public class ServiceConfigure {
     public AmazonS3Client amazonS3Client() {
         BasicAWSCredentials awsCredentials = new BasicAWSCredentials(awsConfigure.getAccessKey(), awsConfigure.getSecretKey());
 
+        log.info("aws region: {}", awsConfigure.getRegion());
+        log.info("aws url: {}", awsConfigure.getUrl());
+        log.info("aws bucket: {}", awsConfigure.getBucket());
+
         return (AmazonS3Client) AmazonS3ClientBuilder.standard()
                 .withRegion(awsConfigure.getRegion())
                 .withCredentials(new AWSStaticCredentialsProvider(awsCredentials))

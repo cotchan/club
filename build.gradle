@@ -25,6 +25,7 @@ dependencies {
     developmentOnly 'org.springframework.boot:spring-boot-devtools'
     implementation 'org.springframework.boot:spring-boot-starter-security'
     runtimeOnly 'com.h2database:h2'
+    runtimeOnly 'mysql:mysql-connector-java'
     annotationProcessor 'org.projectlombok:lombok'
     annotationProcessor "org.springframework.boot:spring-boot-configuration-processor"
     // https://mvnrepository.com/artifact/org.json/json
@@ -52,4 +53,8 @@ dependencies {
 
 test {
     useJUnitPlatform()
+}
+
+jar {
+    enabled = false
 }

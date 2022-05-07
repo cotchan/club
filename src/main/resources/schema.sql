@@ -1,4 +1,7 @@
+SET foreign_key_checks = 0;
+
 DROP TABLE IF EXISTS users CASCADE;
+DROP TABLE IF EXISTS user_role_set CASCADE;
 DROP TABLE IF EXISTS categories CASCADE;
 DROP TABLE IF EXISTS clubs CASCADE;
 DROP TABLE IF EXISTS club_join_states CASCADE;
@@ -23,6 +26,14 @@ CREATE TABLE users
     KEY users_idx_nickname (nickname)
 );
 
+CREATE TABLE user_role_set
+(
+    id                  bigint          NOT NULL AUTO_INCREMENT COMMENT 'id',
+    role_set            int             DEFAULT NULL COMMENT '사용자 ROLE',
+    user_id             bigint          NOT NULL COMMENT '사용자 ID',
+    PRIMARY KEY (id),
+    CONSTRAINT fk_user_role_set_to_user FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE ON UPDATE CASCADE
+);
 
 CREATE TABLE categories
 (
@@ -120,3 +131,5 @@ CREATE TABLE comments
     CONSTRAINT fk_comments_to_post FOREIGN KEY (post_id) REFERENCES posts (id) ON DELETE CASCADE ON UPDATE CASCADE,
     CONSTRAINT fk_comments_to_user FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE RESTRICT ON UPDATE RESTRICT
 );
+
+SET foreign_key_checks = 1;

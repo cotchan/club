@@ -11,5 +11,4 @@ public class ClubProjectApplication {
     public static void main(String[] args) {
         SpringApplication.run(ClubProjectApplication.class, args);
     }
-
 }

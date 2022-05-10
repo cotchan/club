@@ -10,14 +10,6 @@ services:
       - /app/node_modules
       - ./frontend:/app
     stdin_open: true
-  nginx:
-    container_name: nginx-app
-    restart: always
-    build:
-      context: ./nginx
-      dockerfile: Dockerfile
-    ports:
-      - "80:80"
   backend:
     container_name: spring-app
     build:
@@ -36,3 +28,23 @@ services:
 #      CLOUD_AWS_S3_BUCKET: "${CLOUD_AWS_S3_BUCKET}"
 #      CLOUD_AWS_S3_ACCESS_KEY: "${CLOUD_AWS_S3_ACCESS_KEY}"
 #      CLOUD_AWS_S3_SECRET_KEY: "${CLOUD_AWS_S3_SECRET_KEY}"
+  nginx:
+    container_name: nginx-app
+    restart: always
+    volumes:
+      - ./certbot/data/certbot/conf:/etc/letsencrypt
+      - ./certbot/data/certbot/www:/var/www/certbot
+    build:
+      dockerfile: Dockerfile
+      context: ./nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    command: '/bin/sh -c ''while :; do sleep 6h & wait $${!}; nginx -s reload; done & nginx -g "daemon off;"'''
+  certbot:
+    image: certbot/certbot
+    restart: unless-stopped
+    volumes:
+      - ./certbot/data/certbot/conf:/etc/letsencrypt
+      - ./certbot/data/certbot/www:/var/www/certbot
+    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;'"

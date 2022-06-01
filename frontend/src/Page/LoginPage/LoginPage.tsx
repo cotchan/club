@@ -33,9 +33,8 @@ const LoginPage = () => {
       '/auth/signin'
     );
 
-    if (responseStatus !== 302) {
+    if (responseStatus === 200) {
       const localStorage = window.localStorage;
-      console.log('토큰', res);
       localStorage.setItem('token', res);
       navigate('/home');
     } else {
@@ -50,6 +49,10 @@ const LoginPage = () => {
       setModalState(true);
     }
   };
+
+  useEffect(() => {
+    if (window.localStorage.getItem('token')) navigate('/home');
+  }, []);
 
   return (
     <>

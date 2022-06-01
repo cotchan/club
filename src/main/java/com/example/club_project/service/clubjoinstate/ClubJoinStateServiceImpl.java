@@ -9,12 +9,12 @@ import com.example.club_project.domain.User;
 import com.example.club_project.exception.custom.AlreadyExistsException;
 import com.example.club_project.exception.custom.NotFoundException;
 import com.example.club_project.repository.ClubJoinStateRepository;
+import com.example.club_project.repository.query.ClubQueryRepository;
 import com.example.club_project.service.club.ClubService;
 import com.example.club_project.service.user.UserService;
 import com.example.club_project.util.ValidateUtil;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.ObjectUtils;
-import org.apache.commons.lang3.StringUtils;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -35,6 +35,7 @@ public class ClubJoinStateServiceImpl implements ClubJoinStateService {
     private static final int MEMBER_SIZE = 10;
 
     private final ClubJoinStateRepository clubJoinStateRepository;
+    private final ClubQueryRepository clubQueryRepository;
     private final UserService userService;
     private final ClubService clubService;
     private final ValidateUtil validateUtil;
@@ -44,41 +45,8 @@ public class ClubJoinStateServiceImpl implements ClubJoinStateService {
      * for Controller
      */
     @Override
-    public List<ClubDTO> getClubDtos(String university, Pageable pageable) {
-        checkArgument(StringUtils.isNotEmpty(university), "university 입력값은 필수입니다.");
-
-        return clubJoinStateRepository.findAllByUniversity(university, getPageByClub(pageable));
-    }
-
-    @Override
-    public List<ClubDTO> getClubDtos(String name, String university, Pageable pageable) {
-        checkArgument(StringUtils.isNotEmpty(name), "name 입력값은 필수입니다.");
-        checkArgument(StringUtils.isNotEmpty(university), "university 입력값은 필수입니다.");
-
-        return clubJoinStateRepository.findAllByNameAndUniversity(name, university, getPageByClub(pageable));
-    }
-
-    @Override
-    public List<ClubDTO> getClubDtos(List<Long> categories, String university, Pageable pageable) {
-        checkArgument(ObjectUtils.isNotEmpty(categories), "categories 입력값은 필수입니다.");
-        checkArgument(StringUtils.isNotEmpty(university), "university 입력값은 필수입니다.");
-
-        return clubJoinStateRepository.findAll(categories, university, getPageByClub(pageable));
-    }
-
-    @Override
-    public List<ClubDTO> getClubDtos(List<Long> categories, String university, String name, Pageable pageable) {
-        checkArgument(ObjectUtils.isNotEmpty(categories), "categories 입력값은 필수입니다.");
-        checkArgument(StringUtils.isNotEmpty(university), "university 입력값은 필수입니다.");
-        checkArgument(StringUtils.isNotEmpty(name), "name 입력값은 필수입니다.");
-
-        return clubJoinStateRepository.findAll(categories, name, university, getPageByClub(pageable));
-    }
-
-    private Pageable getPageByClub(Pageable defaultPageable) {
-        return PageRequest.of(defaultPageable.getPageNumber(),
-                              defaultPageable.getPageSize(),
-                              Sort.by(DESC, "club"));
+    public List<ClubDTO.SimpleResponse> getClubDtos(List<Long> categories, String university, String name, Pageable pageable) {
+        return clubQueryRepository.findAll(categories, university, name, pageable);
     }
 
     @Override
@@ -87,10 +55,7 @@ public class ClubJoinStateServiceImpl implements ClubJoinStateService {
 
         Club club = clubService.getClub(clubId);
         List<ClubJoinState> members =
-                getManagerRoleMembers(clubId, PageRequest.of(0, MEMBER_SIZE, Sort.by(ASC, "joinState")))
-                                                        .stream()
-                                                        .filter(ClubJoinState::isUsed)
-                                                        .collect(toList());
+                getManagerRoleMembers(clubId, PageRequest.of(0, MEMBER_SIZE, Sort.by(ASC, "joinState")));
 
         return ClubDTO.DetailResponse.of(club, members);
     }
@@ -123,19 +88,19 @@ public class ClubJoinStateServiceImpl implements ClubJoinStateService {
 
     @Override
     public List<ClubDTO.Response> getJoinedClubs(Long userId, Pageable pageable) {
-        return getClubJoinStatesByUser(userId, pageable).stream()
-                .filter(state -> !state.getJoinState().equals(JoinState.NOT_JOINED))
-                .map(state -> state.getClub())
-                .map(clubService::convertToDTO)
+        return clubJoinStateRepository.findAllByUserExceptJoinState(userId, JoinState.NOT_JOINED, pageable)
+                .stream()
+                    .map(state -> state.getClub())
+                    .map(clubService::convertToDTO)
                 .collect(toList());
     }
 
     @Override
     public List<ClubDTO.Response> getWaitingApprovalClubs(Long userId, Pageable pageable) {
-        return getClubJoinStatesByUser(userId, pageable).stream()
-                .filter(state -> state.getJoinState().equals(JoinState.NOT_JOINED))
-                .map(state -> state.getClub())
-                .map(clubService::convertToDTO)
+        return clubJoinStateRepository.findAllByUser(userId, JoinState.NOT_JOINED, pageable)
+                .stream()
+                    .map(state -> state.getClub())
+                    .map(clubService::convertToDTO)
                 .collect(toList());
     }
 
@@ -358,71 +323,49 @@ public class ClubJoinStateServiceImpl implements ClubJoinStateService {
     public ClubJoinState getMaster(Long clubId, Pageable pageable) {
         checkArgument(ObjectUtils.isNotEmpty(clubId), "clubId 입력값은 필수입니다.");
 
-        return clubJoinStateRepository.findAllByClub(clubId, JoinState.MASTER, pageable)
-                .stream()
-                .filter(ClubJoinState::isUsed)
-                .collect(toList())
-                .get(0);
+        return clubJoinStateRepository.findAllByClub(clubId, JoinState.MASTER, pageable).get(0);
     }
 
     @Override
     public List<ClubJoinState> getManagers(Long clubId, Pageable pageable) {
         checkArgument(ObjectUtils.isNotEmpty(clubId), "clubId 입력값은 필수입니다.");
 
-        return clubJoinStateRepository.findAllByClub(clubId, JoinState.MANAGER, pageable)
-                .stream()
-                .filter(ClubJoinState::isUsed)
-                .collect(toList());
+        return clubJoinStateRepository.findAllByClub(clubId, JoinState.MANAGER, pageable);
     }
 
     @Override
     public List<ClubJoinState> getMembers(Long clubId, Pageable pageable) {
         checkArgument(ObjectUtils.isNotEmpty(clubId), "clubId 입력값은 필수입니다.");
 
-        return clubJoinStateRepository.findAllByClub(clubId, JoinState.MEMBER, pageable)
-                .stream()
-                .filter(ClubJoinState::isUsed)
-                .collect(toList());
+        return clubJoinStateRepository.findAllByClub(clubId, JoinState.MEMBER, pageable);
     }
 
     @Override
     public List<ClubJoinState> getAllMembers(Long clubId, Pageable pageable) {
         checkArgument(ObjectUtils.isNotEmpty(clubId), "clubId 입력값은 필수입니다.");
 
-        return clubJoinStateRepository.findAllByClub(clubId, pageable)
-                .stream()
-                .filter(state -> !state.getJoinState().equals(JoinState.NOT_JOINED) && state.isUsed())
-                .collect(toList());
+        return clubJoinStateRepository.findAllByClubExceptJoinState(clubId, JoinState.NOT_JOINED, pageable);
     }
 
     @Override
     public List<ClubJoinState> getAppliedMembers(Long clubId, Pageable pageable) {
         checkArgument(ObjectUtils.isNotEmpty(clubId), "clubId 입력값은 필수입니다.");
 
-        return clubJoinStateRepository.findAllByClub(clubId, JoinState.NOT_JOINED, pageable)
-                .stream()
-                .filter(ClubJoinState::isUsed)
-                .collect(toList());
+        return clubJoinStateRepository.findAllByClub(clubId, JoinState.NOT_JOINED, pageable);
     }
 
     @Override
     public List<ClubJoinState> getManagerRoleMembers(Long clubId, Pageable pageable) {
         checkArgument(ObjectUtils.isNotEmpty(clubId), "clubId 입력값은 필수입니다.");
 
-        return clubJoinStateRepository.findAllByClubContainingJoinState(clubId, JoinState.MANAGER, pageable)
-                .stream()
-                .filter(ClubJoinState::isUsed)
-                .collect(toList());
+        return clubJoinStateRepository.findAllByClubContainingJoinState(clubId, JoinState.MANAGER, pageable);
     }
 
     @Override
     public List<ClubJoinState> getMemberRoleMembers(Long clubId, Pageable pageable) {
         checkArgument(ObjectUtils.isNotEmpty(clubId), "clubId 입력값은 필수입니다.");
 
-        return clubJoinStateRepository.findAllByClubContainingJoinState(clubId, JoinState.MEMBER, pageable)
-                .stream()
-                .filter(ClubJoinState::isUsed)
-                .collect(toList());
+        return clubJoinStateRepository.findAllByClubContainingJoinState(clubId, JoinState.MEMBER, pageable);
     }
 
 
@@ -433,10 +376,7 @@ public class ClubJoinStateServiceImpl implements ClubJoinStateService {
     public List<ClubJoinState> getClubJoinStatesByUser(Long userId, Pageable pageable) {
         checkArgument(ObjectUtils.isNotEmpty(userId), "userId 입력값은 필수입니다.");
 
-        return clubJoinStateRepository.findAllByUser(userId, pageable)
-                .stream()
-                .filter(ClubJoinState::isUsed)
-                .collect(toList());
+        return clubJoinStateRepository.findAllByUser(userId, pageable);
     }
 
     @Override
@@ -445,10 +385,7 @@ public class ClubJoinStateServiceImpl implements ClubJoinStateService {
 
         JoinState joinState = JoinState.from(joinStateCode);
 
-        return clubJoinStateRepository.findAllByUser(userId, joinState, pageable)
-                .stream()
-                .filter(ClubJoinState::isUsed)
-                .collect(toList());
+        return clubJoinStateRepository.findAllByUser(userId, joinState, pageable);
     }
 
     @Override
@@ -457,9 +394,6 @@ public class ClubJoinStateServiceImpl implements ClubJoinStateService {
 
         JoinState joinState = JoinState.from(joinStateCode);
 
-        return clubJoinStateRepository.findAllByUserContainingJoinState(userId, joinState, pageable)
-                .stream()
-                .filter(ClubJoinState::isUsed)
-                .collect(toList());
+        return clubJoinStateRepository.findAllByUserContainingJoinState(userId, joinState, pageable);
     }
 }
